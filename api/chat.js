@@ -1,3 +1,5 @@
+import { GoogleGenAI } from "@google/genai";
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -6,7 +8,7 @@ export default async function handler(req, res) {
 
   // OPTIONS
   if (req.method === "OPTIONS") {
-    return res.status(200).json({ ok: true });
+    return res.status(200).end();
   }
 
   // Sadece POST
@@ -17,19 +19,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log("XYTEC: POST başladı");
+    console.log("POST /api/chat başladı");
 
-    // API key kontrolü
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("XYTEC: GEMINI_API_KEY bulunamadı");
-
-      return res.status(500).json({
-        error: "GEMINI_API_KEY is not configured"
-      });
-    }
-
-    // Body
     const { message } = req.body || {};
+
+    console.log("Mesaj alındı:", message);
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({
@@ -37,36 +31,31 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log("XYTEC: Gemini SDK yükleniyor");
-
-    // Gemini SDK
-    const { GoogleGenAI } = await import("@google/genai");
-
-    console.log("XYTEC: Gemini SDK hazır");
-
+    // Gemini istemcisi
     const ai = new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY
     });
 
-    console.log("XYTEC: Gemini isteği gönderiliyor");
+    console.log("Gemini istemcisi hazır");
 
+    // Gemini çağrısı
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: message
     });
 
-    console.log("XYTEC: Gemini cevap verdi");
+    console.log("Gemini yanıt verdi");
 
     return res.status(200).json({
       reply: response.text
     });
 
   } catch (error) {
-    console.error("XYTEC GEMINI ERROR:", error);
+    console.error("CHAT ERROR:", error);
 
     return res.status(500).json({
-      error: "Gemini request failed",
-      details: error?.message || String(error)
+      error: "Internal Server Error",
+      details: error.message
     });
   }
-      }
+}
